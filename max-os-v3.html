@@ -677,7 +677,7 @@ textarea { resize: vertical; min-height: 60px; }
   <span style="font-family:Outfit;font-weight:700;font-size:17px;">Max<em style="color:var(--accent);font-style:normal">OS</em></span>
   <span style="width:22px"></span>
 </div>
-<div class="overlay" id="overlay" onclick="closeSB()"></div>
+<div class="overlay" id="overlay"></div>
 
 <div class="app">
 <nav class="sidebar" id="sb">
@@ -688,29 +688,29 @@ textarea { resize: vertical; min-height: 60px; }
 
   <div class="nav-section">Quotidien</div>
   <ul class="nav">
-    <li class="nav-item active" onclick="go('today')" data-p="today"><span class="nav-icon">◉</span>Aujourd'hui<span class="nav-badge" id="badge-today">0</span></li>
-    <li class="nav-item" onclick="go('inbox')" data-p="inbox"><span class="nav-icon">↓</span>Inbox<span class="nav-badge" id="badge-inbox">0</span></li>
+    <li class="nav-item active" data-p="today"><span class="nav-icon">◉</span>Aujourd'hui<span class="nav-badge" id="badge-today">0</span></li>
+    <li class="nav-item" data-p="inbox"><span class="nav-icon">↓</span>Inbox<span class="nav-badge" id="badge-inbox">0</span></li>
   </ul>
   <div class="nav-section">Organisation</div>
   <ul class="nav">
-    <li class="nav-item" onclick="go('projects')" data-p="projects"><span class="nav-icon">◧</span>Projets</li>
-    <li class="nav-item" onclick="go('kanban')" data-p="kanban"><span class="nav-icon">⊞</span>Kanban</li>
-    <li class="nav-item" onclick="go('agenda')" data-p="agenda"><span class="nav-icon">▦</span>Agenda</li>
-    <li class="nav-item" onclick="go('okr')" data-p="okr"><span class="nav-icon">◎</span>OKR</li>
+    <li class="nav-item" data-p="projects"><span class="nav-icon">◧</span>Projets</li>
+    <li class="nav-item" data-p="kanban"><span class="nav-icon">⊞</span>Kanban</li>
+    <li class="nav-item" data-p="agenda"><span class="nav-icon">▦</span>Agenda</li>
+    <li class="nav-item" data-p="okr"><span class="nav-icon">◎</span>OKR</li>
   </ul>
   <div class="nav-section">Habitudes</div>
   <ul class="nav">
-    <li class="nav-item" onclick="go('habits')" data-p="habits"><span class="nav-icon">⬡</span>Tracker</li>
+    <li class="nav-item" data-p="habits"><span class="nav-icon">⬡</span>Tracker</li>
   </ul>
   <div class="nav-section">Journal</div>
   <ul class="nav">
-    <li class="nav-item" onclick="go('decisions')" data-p="decisions"><span class="nav-icon">⚖</span>Décisions</li>
-    <li class="nav-item" onclick="go('wins')" data-p="wins"><span class="nav-icon">★</span>Victoires</li>
-    <li class="nav-item" onclick="go('contacts')" data-p="contacts"><span class="nav-icon">◉</span>Contacts</li>
+    <li class="nav-item" data-p="decisions"><span class="nav-icon">⚖</span>Décisions</li>
+    <li class="nav-item" data-p="wins"><span class="nav-icon">★</span>Victoires</li>
+    <li class="nav-item" data-p="contacts"><span class="nav-icon">◉</span>Contacts</li>
   </ul>
   <div class="nav-section">Intelligence</div>
   <ul class="nav">
-    <li class="nav-item" onclick="go('bilan')" data-p="bilan"><span class="nav-icon">✦</span>Bilan IA</li>
+    <li class="nav-item" data-p="bilan"><span class="nav-icon">✦</span>Bilan IA</li>
   </ul>
 
   <div class="sidebar-clock">
@@ -1173,6 +1173,7 @@ function today() { return new Date().toISOString().split('T')[0]; }
 // ===== INIT =====
 function init() {
   updateClock(); setInterval(updateClock, 30000);
+  initNav();
   load();
 }
 
@@ -1194,12 +1195,46 @@ function go(p) {
   closeSB();
   window.scrollTo(0, 0);
 }
-function closeSB() { document.getElementById('sb').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+function closeSB() {
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
 function toggleSB() {
   const sb = document.getElementById('sb');
   const ov = document.getElementById('overlay');
   if(sb.classList.contains('open')) { sb.classList.remove('open'); ov.classList.remove('show'); }
   else { sb.classList.add('open'); ov.classList.add('show'); }
+}
+
+// Attache un handler tap fiable sur iOS (touchend) + click desktop
+function bindTap(el, fn) {
+  let startY = 0;
+  let tapped = false;
+  el.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    tapped = false;
+  }, { passive: true });
+  el.addEventListener('touchend', function(e) {
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    if (dy < 8) {
+      tapped = true;
+      e.preventDefault(); // empêche le click synthétique iOS
+      fn();
+    }
+  }, { passive: false });
+  el.addEventListener('click', function() {
+    if (tapped) { tapped = false; return; } // déjà géré par touchend
+    fn();
+  });
+}
+
+function initNav() {
+  // Nav items
+  document.querySelectorAll('.nav-item[data-p]').forEach(el => {
+    bindTap(el, () => go(el.dataset.p));
+  });
+  // Overlay (fermeture en tapant en dehors)
+  bindTap(document.getElementById('overlay'), closeSB);
 }
 function showM(id) { document.getElementById(id).classList.add('show'); }
 function hideM(id) { document.getElementById(id).classList.remove('show'); }
