@@ -527,21 +527,133 @@ textarea { resize: vertical; min-height: 60px; }
 .empty-ico { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
 .empty-txt { font-size: 13px; }
 
-/* Mobile */
-.mobile-bar {
-  display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px;
-  background: var(--bg-elevated); border-bottom: 1px solid var(--border);
-  z-index: 99; padding: 0 14px; align-items: center; justify-content: space-between;
+/* ===== BOTTOM NAV (mobile) ===== */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  /* safe area iPhone home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-.mobile-bar button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.overlay.show { display: block; }
+.bottom-nav-inner {
+  display: flex;
+  height: 56px;
+}
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+.bn-icon {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+.bn-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Nunito Sans', sans-serif;
+  transition: color 0.15s;
+  letter-spacing: 0.1px;
+}
+.bn-item.active .bn-icon,
+.bn-item.active .bn-label { color: var(--accent); }
+.bn-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 20px);
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.5;
+  display: none;
+}
+
+/* More sheet */
+.more-sheet-bg {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 300;
+  -webkit-tap-highlight-color: transparent;
+}
+.more-sheet-bg.show { display: block; }
+.more-sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  z-index: 310;
+  padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+.more-sheet.show { transform: translateY(0); pointer-events: auto; }
+.more-handle {
+  width: 36px; height: 4px;
+  background: var(--border-active);
+  border-radius: 2px;
+  margin: 12px auto 16px;
+}
+.more-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 6px;
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  transition: background 0.12s;
+}
+.more-item:active { background: var(--bg-surface); }
+.more-item.active { background: var(--accent-glow); }
+.more-item.active .more-label { color: var(--accent-text); }
+.more-icon { font-size: 20px; line-height: 1; }
+.more-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  font-family: 'Nunito Sans', sans-serif;
+}
 
 @media (max-width: 1024px) {
-  .mobile-bar { display: flex; }
-  .sidebar { transform: translateX(-100%); z-index: 200; }
-  .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0; padding: 64px 14px 20px; }
+  .sidebar { display: none; }
+  .bottom-nav { display: flex; flex-direction: column; }
+  .main {
+    margin-left: 0;
+    padding: 20px 14px calc(56px + env(safe-area-inset-bottom, 16px) + 16px);
+  }
 }
 
 @media (max-width: 768px) {
@@ -672,11 +784,52 @@ textarea { resize: vertical; min-height: 60px; }
 </head>
 <body>
 
-<div class="mobile-bar">
-  <button onclick="toggleSB()">☰</button>
-  <span style="font-family:Outfit;font-weight:700;font-size:17px;">Max<em style="color:var(--accent);font-style:normal">OS</em></span>
-  <span style="width:22px"></span>
+<!-- Bottom navigation bar (mobile ≤ 1024px) -->
+<nav class="bottom-nav" id="bottom-nav" aria-label="Navigation principale">
+  <div class="bottom-nav-inner">
+    <div class="bn-item active" id="bn-today" data-p="today">
+      <span class="bn-icon">◉</span>
+      <span class="bn-label">Aujourd'hui</span>
+      <span class="bn-badge" id="bn-badge-today"></span>
+    </div>
+    <div class="bn-item" id="bn-inbox" data-p="inbox">
+      <span class="bn-icon">↓</span>
+      <span class="bn-label">Inbox</span>
+      <span class="bn-badge" id="bn-badge-inbox"></span>
+    </div>
+    <div class="bn-item" id="bn-kanban" data-p="kanban">
+      <span class="bn-icon">⊞</span>
+      <span class="bn-label">Kanban</span>
+    </div>
+    <div class="bn-item" id="bn-agenda" data-p="agenda">
+      <span class="bn-icon">▦</span>
+      <span class="bn-label">Agenda</span>
+    </div>
+    <div class="bn-item" id="bn-more">
+      <span class="bn-icon">···</span>
+      <span class="bn-label">Plus</span>
+    </div>
+  </div>
+</nav>
+
+<!-- More sheet backdrop -->
+<div class="more-sheet-bg" id="more-sheet-bg"></div>
+
+<!-- More sheet (pages secondaires) -->
+<div class="more-sheet" id="more-sheet">
+  <div class="more-handle"></div>
+  <div class="more-grid">
+    <div class="more-item" data-p="projects"><span class="more-icon">◧</span><span class="more-label">Projets</span></div>
+    <div class="more-item" data-p="okr"><span class="more-icon">◎</span><span class="more-label">OKR</span></div>
+    <div class="more-item" data-p="habits"><span class="more-icon">⬡</span><span class="more-label">Tracker</span></div>
+    <div class="more-item" data-p="decisions"><span class="more-icon">⚖</span><span class="more-label">Décisions</span></div>
+    <div class="more-item" data-p="contacts"><span class="more-icon">◉</span><span class="more-label">Contacts</span></div>
+    <div class="more-item" data-p="wins"><span class="more-icon">★</span><span class="more-label">Victoires</span></div>
+    <div class="more-item" data-p="bilan"><span class="more-icon">✦</span><span class="more-label">Bilan IA</span></div>
+  </div>
 </div>
+
+<!-- Overlay (desktop uniquement, pour le sidebar si redimensionnement) -->
 <div class="overlay" id="overlay"></div>
 
 <div class="app">
@@ -1187,54 +1340,85 @@ function updateClock() {
 }
 
 // ===== NAV =====
+
+// Pages présentes dans la bottom nav directement
+const BN_DIRECT = new Set(['today','inbox','kanban','agenda']);
+
 function go(p) {
-  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
   document.getElementById('p-'+p).classList.add('active');
-  document.querySelector(`[data-p="${p}"]`)?.classList.add('active');
-  closeSB();
+  // Sidebar desktop
+  document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+  document.querySelector(`.nav-item[data-p="${p}"]`)?.classList.add('active');
+  // Bottom nav mobile
+  syncBottomNav(p);
+  closeMore();
   window.scrollTo(0, 0);
 }
-function closeSB() {
-  document.getElementById('sb').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-}
-function toggleSB() {
-  const sb = document.getElementById('sb');
-  const ov = document.getElementById('overlay');
-  if(sb.classList.contains('open')) { sb.classList.remove('open'); ov.classList.remove('show'); }
-  else { sb.classList.add('open'); ov.classList.add('show'); }
+
+function syncBottomNav(p) {
+  document.querySelectorAll('.bn-item').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.more-item').forEach(e => e.classList.remove('active'));
+  if (BN_DIRECT.has(p)) {
+    document.getElementById('bn-'+p)?.classList.add('active');
+  } else {
+    // Page secondaire : active le bouton "Plus" + highlight dans la sheet
+    document.getElementById('bn-more')?.classList.add('active');
+    document.querySelector(`.more-item[data-p="${p}"]`)?.classList.add('active');
+  }
 }
 
-// Attache un handler tap fiable sur iOS (touchend) + click desktop
+function updateBnBadge(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = count;
+  el.style.display = count > 0 ? '' : 'none';
+}
+
+function openMore() {
+  document.getElementById('more-sheet').classList.add('show');
+  document.getElementById('more-sheet-bg').classList.add('show');
+}
+
+function closeMore() {
+  document.getElementById('more-sheet').classList.remove('show');
+  document.getElementById('more-sheet-bg').classList.remove('show');
+}
+
+// Handler tap fiable iOS : touchend + fallback click desktop
 function bindTap(el, fn) {
-  let startY = 0;
-  let tapped = false;
-  el.addEventListener('touchstart', function(e) {
+  let startY = 0, fired = false;
+  el.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
-    tapped = false;
+    fired = false;
   }, { passive: true });
-  el.addEventListener('touchend', function(e) {
-    const dy = Math.abs(e.changedTouches[0].clientY - startY);
-    if (dy < 8) {
-      tapped = true;
-      e.preventDefault(); // empêche le click synthétique iOS
+  el.addEventListener('touchend', e => {
+    if (Math.abs(e.changedTouches[0].clientY - startY) < 8) {
+      fired = true;
+      e.preventDefault();
       fn();
     }
   }, { passive: false });
-  el.addEventListener('click', function() {
-    if (tapped) { tapped = false; return; } // déjà géré par touchend
-    fn();
-  });
+  el.addEventListener('click', () => { if (fired) { fired = false; return; } fn(); });
 }
 
 function initNav() {
-  // Nav items
-  document.querySelectorAll('.nav-item[data-p]').forEach(el => {
-    bindTap(el, () => go(el.dataset.p));
-  });
-  // Overlay (fermeture en tapant en dehors)
-  bindTap(document.getElementById('overlay'), closeSB);
+  // Sidebar desktop
+  document.querySelectorAll('.nav-item[data-p]').forEach(el =>
+    bindTap(el, () => go(el.dataset.p))
+  );
+  // Bottom nav : onglets directs
+  document.querySelectorAll('.bn-item[data-p]').forEach(el =>
+    bindTap(el, () => go(el.dataset.p))
+  );
+  // Bottom nav : bouton Plus
+  bindTap(document.getElementById('bn-more'), openMore);
+  // More sheet : items
+  document.querySelectorAll('.more-item[data-p]').forEach(el =>
+    bindTap(el, () => go(el.dataset.p))
+  );
+  // More sheet : fermeture via backdrop
+  bindTap(document.getElementById('more-sheet-bg'), closeMore);
 }
 function showM(id) { document.getElementById(id).classList.add('show'); }
 function hideM(id) { document.getElementById(id).classList.remove('show'); }
@@ -1261,7 +1445,9 @@ function renderTodayTasks() {
     });
     c.innerHTML = tasks.map(t => taskHTML(t)).join('');
   }
-  document.getElementById('badge-today').textContent = tasks.filter(x=>x.state!=='done').length;
+  const todayCount = tasks.filter(x=>x.state!=='done').length;
+  document.getElementById('badge-today').textContent = todayCount;
+  updateBnBadge('bn-badge-today', todayCount);
   updateStats();
 }
 
@@ -1271,6 +1457,7 @@ function renderInbox() {
   if(!tasks.length) { c.innerHTML='<div class="empty" style="padding:16px"><div class="empty-txt">Inbox vide. Bien joué !</div></div>'; }
   else { c.innerHTML = tasks.map(t => taskHTML(t, true)).join(''); }
   document.getElementById('badge-inbox').textContent = tasks.length;
+  updateBnBadge('bn-badge-inbox', tasks.length);
 }
 
 function taskHTML(t, isInbox) {
